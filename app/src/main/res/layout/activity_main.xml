@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.bluetoothapp.MainActivity">
+
+    <Button
+        android:id="@+id/BluetoothButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FF3F51B5"
+        android:text="Enable"
+        android:textColor="@android:color/background_light"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="25dp"
+        android:layout_marginBottom="25dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginRight="25dp"
+        android:textSize="16dp"/>
+
+    <Button
+        android:id="@+id/ScanButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FF3F51B5"
+        android:text="Scan"
+        android:textColor="@android:color/background_light"
+        android:layout_marginTop="61dp"
+        android:textSize="16dp"
+        android:layout_alignTop="@+id/BluetoothButton"
+        android:layout_alignLeft="@+id/BluetoothButton"
+        android:layout_alignStart="@+id/BluetoothButton"
+        android:layout_alignRight="@+id/BluetoothButton"
+        android:layout_alignEnd="@+id/BluetoothButton"/>
+
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/ScanButton"
+        android:layout_marginTop="25dp"
+        android:layout_marginRight="25dp"
+        android:layout_marginLeft="25dp"
+        android:layout_marginBottom="25dp"
+        android:id="@+id/listView"/>
+
+</RelativeLayout>

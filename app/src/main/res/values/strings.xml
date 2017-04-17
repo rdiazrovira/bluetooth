@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Bluetooth</string>
+    <string name="ble_not_supported">Not support bluetooth low energy</string>
+    <string name="action_settings">Settings</string>
+</resources>
