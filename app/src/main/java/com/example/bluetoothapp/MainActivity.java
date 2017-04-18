@@ -48,11 +48,17 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothFacade mBluetooth;
     private DeviceAdapter mDeviceAdapter;
 
-    private IntentFilter mFilter;
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             mBluetooth.addBluetoothDevices(intent);
+        }
+    };
+
+    private BroadcastReceiver mPairingReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mBluetooth.manageDevicePairing(intent);
         }
     };
 
@@ -102,31 +108,16 @@ public class MainActivity extends AppCompatActivity {
 
                 if (mList.get(position) instanceof BluetoothDevice) {
                     final BluetoothDevice bluetoothDevice = (BluetoothDevice) mList.get(position);
-                    String error = "";
                     if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
-                        error = mBluetooth.unpairDevice(bluetoothDevice);
-                        if (error.equals("")) {
-                            mEditor.clear().commit();
-                            //mBluetooth.startDiscovery();
-                        } else {
-                            Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
-                        }
+                        mBluetooth.unpairDevice(bluetoothDevice);
                     } else {
-                        error = mBluetooth.pairDevice(bluetoothDevice);
-                        if (error.equals("")) {
-                            mEditor.putString(PAIRED_BLUETOOTH_DEVICE, bluetoothDevice.getAddress());
-                            mEditor.commit();
-                            //mBluetooth.startDiscovery();
-                        } else {
-                            Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
-                        }
+                        mBluetooth.pairDevice(bluetoothDevice);
                     }
-
                 }
             }
         });
 
-        registerReceiver(mReceiver);
+        registerReceiver(mReceiver, mPairingReceiver);
     }
 
     private boolean isAccessGrantedToTheLocation() {
@@ -155,9 +146,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         if (mBluetooth.isEnabled()) {
             mBluetoothButton.setText("Disable");
-            if (isAccessGrantedToTheLocation()) {
-                mBluetooth.startDiscovery();
-            }
         } else {
             mBluetoothButton.setText("Enable");
             mDeviceList.setAdapter(null);
@@ -205,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
         mList = new ArrayList<>();
         mDialog = createDialog("Loading available devices...");
         mPDialog = createDialog("Pairing");
-        mFilter = new IntentFilter();
 
         mSharedPreferences = getSharedPreferences(BLUETOOTH_PREFS_FILE, Context.MODE_PRIVATE);
         mEditor = mSharedPreferences.edit();
@@ -233,6 +220,28 @@ public class MainActivity extends AppCompatActivity {
                 mList = mDeviceAdapter.buildList(devices);
                 mDeviceList.setAdapter(mDeviceAdapter);
             }
+        }, new BluetoothFacade.OnBluetoothDevicePairingListener() {
+            @Override
+            public void onPairedDevice() {
+                if (mPDialog.isShowing()) mPDialog.dismiss();
+                mBluetooth.startDiscovery();
+            }
+
+            @Override
+            public void onUnpairedDevice(boolean unpairing) {
+                if (mPDialog.isShowing()) mPDialog.dismiss();
+                if (unpairing) mBluetooth.startDiscovery();
+            }
+
+            @Override
+            public void onPairingStart() {
+                mPDialog.show();
+            }
+
+            @Override
+            public void onWaitingForAuthorization() {
+                mPDialog.dismiss();
+            }
         });
 
         if (mBluetooth.isSupported()) {
@@ -257,11 +266,17 @@ public class MainActivity extends AppCompatActivity {
         return dialog;
     }
 
-    private void registerReceiver(BroadcastReceiver receiver) {
+    private void registerReceiver(BroadcastReceiver receiver, BroadcastReceiver pairingReceiver) {
+        IntentFilter mFilter = new IntentFilter();
         mFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         mFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         mFilter.addAction(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, mFilter);
+        mFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        mFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        registerReceiver(pairingReceiver, mFilter);
     }
 
 }

@@ -12,15 +12,19 @@ import java.util.Set;
 
 public class BluetoothFacade {
 
-    private final OnBluetoothDeviceScanListener mListener;
+    private final OnBluetoothDeviceScanListener mScanListener;
+    private final OnBluetoothDevicePairingListener mPairingListener;
 
     private BluetoothAdapter mBluetoothAdapter;
     private ArrayList<BluetoothDevice> mBluetoothDevices;
 
     private static final String BLUETOOTH_UTIL_TAG = "bluetooth_util";
+    private static final String PAIRING_TAG = "pairing_tag";
     public static final String BLUETOOTH_PREFS_FILE = "com.example.bluetoothapp.preferences";
     public static final String PAIRED_BLUETOOTH_DEVICE = "paired_bluetooth_device";
     public static final String AVAILABLE_BLUETOOTH_DEVICE = "available_bluetooth_device";
+
+    private boolean mUnpairing = true;
 
 
     public interface OnBluetoothDeviceScanListener {
@@ -33,10 +37,23 @@ public class BluetoothFacade {
         void onDeviceFound(ArrayList<BluetoothDevice> devices);
     }
 
-    public BluetoothFacade(OnBluetoothDeviceScanListener listener) {
+    public interface OnBluetoothDevicePairingListener {
+
+        void onPairingStart();
+
+        void onWaitingForAuthorization();
+
+        void onPairedDevice();
+
+        void onUnpairedDevice(boolean paired);
+
+    }
+
+    public BluetoothFacade(OnBluetoothDeviceScanListener scanListener, OnBluetoothDevicePairingListener pairingListener) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothDevices = new ArrayList<>();
-        mListener = listener;
+        mScanListener = scanListener;
+        mPairingListener = pairingListener;
     }
 
     public boolean isSupported() {
@@ -60,10 +77,6 @@ public class BluetoothFacade {
         mBluetoothAdapter.disable();
     }
 
-    public boolean isDiscovering() {
-        return mBluetoothAdapter.isDiscovering();
-    }
-
     public void cancelDiscovery() {
         if (mBluetoothAdapter.isDiscovering()) {
             mBluetoothAdapter.cancelDiscovery();
@@ -73,7 +86,6 @@ public class BluetoothFacade {
     private void addPairedBluetoothDevices() {
         Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
         for (BluetoothDevice device : devices) {
-            Log.v(BLUETOOTH_UTIL_TAG, "d: " + device.getName());
             if (device.getName() != null && isNewDevice(device.getAddress())) {
                 mBluetoothDevices.add(device);
             }
@@ -84,19 +96,17 @@ public class BluetoothFacade {
 
         String action = intent.getAction();
 
-        Log.v(BLUETOOTH_UTIL_TAG, "action: " + action);
-
         if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
             Log.v(BLUETOOTH_UTIL_TAG, "ACTION_DISCOVERY_STARTED");
             mBluetoothDevices.clear();
             addPairedBluetoothDevices();
-            mListener.onScanStarted();
+            mScanListener.onScanStarted();
         } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
             Log.v(BLUETOOTH_UTIL_TAG, "ACTION_DISCOVERY_FINISHED");
             if (mBluetoothDevices.size() != 0) {
-                mListener.onScanFinishedAndDevicesFound();
+                mScanListener.onScanFinishedAndDevicesFound();
             } else {
-                mListener.onScanFinishedAndDevicesNoFound();
+                mScanListener.onScanFinishedAndDevicesNoFound();
             }
         } else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
             Log.v(BLUETOOTH_UTIL_TAG, "ACTION_FOUND");
@@ -105,34 +115,35 @@ public class BluetoothFacade {
                 Log.v(BLUETOOTH_UTIL_TAG, "dev: " + device.getName());
                 mBluetoothDevices.add(device);
             }
-            mListener.onDeviceFound(mBluetoothDevices);
+            mScanListener.onDeviceFound(mBluetoothDevices);
         }
 
     }
 
-    public String unpairDevice(BluetoothDevice bluetoothDevice) {
+    public void unpairDevice(BluetoothDevice bluetoothDevice) {
         Method m = null;
         try {
             m = bluetoothDevice.getClass().getMethod("removeBond", (Class[]) null);
             m.invoke(bluetoothDevice, (Object[]) null);
+
         } catch (IllegalAccessException e) {
-            return "Error to pairing devices: " + e.getMessage();
+            e.getMessage();
         } catch (InvocationTargetException e) {
-            return "Error to pairing devices: " + e.getMessage();
+            e.getMessage();
         } catch (NoSuchMethodException e) {
-            return "Error to pairing devices: " + e.getMessage();
+            e.getMessage();
         }
-        return "";
+        mUnpairing = true;
     }
 
-    public String pairDevice(BluetoothDevice device) {
+    public void pairDevice(BluetoothDevice device) {
         try {
             Method method = device.getClass().getMethod("createBond", (Class[]) null);
             method.invoke(device, (Object[]) null);
         } catch (Exception e) {
-            return "Error to pairing devices: " + e.getMessage();
+            e.getMessage();
         }
-        return "";
+        mUnpairing = false;
     }
 
     private boolean isNewDevice(String deviceName) {
@@ -144,16 +155,39 @@ public class BluetoothFacade {
         return true;
     }
 
-    public BluetoothDevice getDevice(int position) {
-        return mBluetoothDevices.get(position);
-    }
-
-    public void connectAsClient(BluetoothDevice bluetoothDevice, BluetoothClientConnection.OnBluetoothClientConnListener listener) {
-        BluetoothClientConnection BTClientConn = new BluetoothClientConnection(bluetoothDevice, mBluetoothAdapter, listener);
-        BTClientConn.connect();
-    }
-
     public static String deviceType(BluetoothDevice device) {
         return device.getBondState() == BluetoothDevice.BOND_BONDED ? PAIRED_BLUETOOTH_DEVICE : AVAILABLE_BLUETOOTH_DEVICE;
+    }
+
+    public void manageDevicePairing(Intent intent) {
+
+        String action = intent.getAction();
+
+        if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+            switch (device.getBondState()) {
+                case BluetoothDevice.BOND_BONDING:
+                    mPairingListener.onPairingStart();
+                    Log.v(PAIRING_TAG, "BOND_BONDING");
+                    break;
+                case BluetoothDevice.BOND_BONDED:
+                    mPairingListener.onPairedDevice();
+                    Log.v(PAIRING_TAG, "BOND_BONDED");
+                    break;
+                case BluetoothDevice.BOND_NONE:
+                    mPairingListener.onUnpairedDevice(mUnpairing);
+                    Log.v(PAIRING_TAG, "BOND_NONE");
+                    break;
+                default:
+                    break;
+            }
+
+        } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+            mPairingListener.onWaitingForAuthorization();
+            Log.v(PAIRING_TAG, "ACTION_ACL_CONNECTED");
+        }
+
     }
 }
