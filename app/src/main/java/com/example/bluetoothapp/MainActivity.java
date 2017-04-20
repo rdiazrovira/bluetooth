@@ -15,13 +15,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.bluetoothapp.adapter.DeviceAdapter;
@@ -29,9 +28,7 @@ import com.example.bluetoothapp.utilities.BluetoothFacade;
 
 import java.util.ArrayList;
 
-import static com.example.bluetoothapp.utilities.BluetoothFacade.AVAILABLE_BLUETOOTH_DEVICE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_PREFS_FILE;
-import static com.example.bluetoothapp.utilities.BluetoothFacade.PAIRED_BLUETOOTH_DEVICE;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button mBluetoothButton;
     private Button mScanButton;
-    private ListView mDeviceList;
+    private RecyclerView mDeviceList;
     private ProgressDialog mDialog, mPDialog;
 
     private BluetoothFacade mBluetooth;
@@ -62,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private ArrayList<Object> mList;
+    private DeviceAdapter.OnDeviceListItemClickListener mClickListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,7 +99,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mDeviceList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mClickListener = new DeviceAdapter.OnDeviceListItemClickListener() {
+            @Override
+            public void onItemClick(BluetoothDevice device) {
+                if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                    mBluetooth.unpairDevice(device);
+                } else {
+                    mBluetooth.pairDevice(device);
+                }
+            }
+        };
+
+        /*mDeviceList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
@@ -115,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        });
+        });*/
 
         registerReceiver(mReceiver, mPairingReceiver);
     }
@@ -189,8 +197,10 @@ public class MainActivity extends AppCompatActivity {
     private void initView() {
         mBluetoothButton = (Button) findViewById(R.id.BluetoothButton);
         mScanButton = (Button) findViewById(R.id.ScanButton);
-        mDeviceList = (ListView) findViewById(R.id.listView);
-        mList = new ArrayList<>();
+        mDeviceList = (RecyclerView) findViewById(R.id.DeviceListRecyclerView);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        mDeviceList.setLayoutManager(linearLayoutManager);
+        mDeviceList.setHasFixedSize(true);
         mDialog = createDialog("Loading available devices...");
         mPDialog = createDialog("Pairing");
 
@@ -216,8 +226,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDeviceFound(ArrayList<BluetoothDevice> devices) {
-                mDeviceAdapter = new DeviceAdapter(MainActivity.this, devices);
-                mList = mDeviceAdapter.buildList(devices);
+                mDeviceAdapter = new DeviceAdapter(devices, mClickListener);
                 mDeviceList.setAdapter(mDeviceAdapter);
             }
         }, new BluetoothFacade.OnBluetoothDevicePairingListener() {

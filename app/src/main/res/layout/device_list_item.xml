@@ -8,26 +8,26 @@
                 android:paddingTop="10dp">
 
     <ImageView
-        android:id="@+id/deviceImageView"
+        android:id="@+id/DeviceImageView"
         android:layout_width="60dp"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
         app:srcCompat="@drawable/devices"/>
 
     <TextView
-        android:id="@+id/nameDeviceTextView"
+        android:id="@+id/DeviceNameTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/deviceImageView"
-        android:layout_alignTop="@+id/deviceImageView"
+        android:layout_alignBottom="@+id/DeviceImageView"
+        android:layout_alignTop="@+id/DeviceImageView"
         android:layout_centerHorizontal="true"
-        android:layout_marginRight="20dp"
         android:layout_marginLeft="20dp"
-        android:layout_toRightOf="@+id/deviceImageView"
+        android:layout_marginRight="20dp"
+        android:layout_toRightOf="@+id/DeviceImageView"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:paddingTop="15dp"
         android:text=" - "
-        android:textSize="18dp"
-        android:ellipsize="end"
-        android:maxLines="1"/>
+        android:textSize="18dp"/>
 
 </RelativeLayout>
