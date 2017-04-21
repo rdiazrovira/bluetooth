@@ -11,23 +11,34 @@
         android:id="@+id/DeviceImageView"
         android:layout_width="60dp"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
+        android:layout_marginLeft="5dp"
         app:srcCompat="@drawable/devices"/>
 
     <TextView
         android:id="@+id/DeviceNameTextView"
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/DeviceImageView"
         android:layout_alignTop="@+id/DeviceImageView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
         android:layout_toRightOf="@+id/DeviceImageView"
-        android:ellipsize="end"
+        android:layout_toLeftOf="@+id/SettingsImageView"
+        android:ellipsize="marquee"
         android:maxLines="1"
         android:paddingTop="15dp"
         android:text=" - "
         android:textSize="18dp"/>
+
+    <ImageView
+        android:id="@+id/SettingsImageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:srcCompat="@drawable/settings"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="5dp"
+        android:layout_marginEnd="20dp"/>
 
 </RelativeLayout>

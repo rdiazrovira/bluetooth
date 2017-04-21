@@ -2,18 +2,31 @@ package com.example.bluetoothapp.utilities;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
+import android.widget.Toast;
 
+import com.example.bluetoothapp.MainActivity;
+
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
 
+import static android.content.SharedPreferences.*;
+
 public class BluetoothFacade {
 
     private final OnBluetoothDeviceScanListener mScanListener;
     private final OnBluetoothDevicePairingListener mPairingListener;
+    private final BluetoothClientConnection.OnBluetoothClientConnListener mConnListener;
+    private final OnBluetoothDeviceConnectionListener mConnFollowedDevice;
+
+    private Context mContext;
 
     private BluetoothAdapter mBluetoothAdapter;
     private ArrayList<BluetoothDevice> mBluetoothDevices;
@@ -21,6 +34,8 @@ public class BluetoothFacade {
     private static final String BLUETOOTH_UTIL_TAG = "bluetooth_util";
     private static final String PAIRING_TAG = "pairing_tag";
     public static final String BLUETOOTH_PREFS_FILE = "com.example.bluetoothapp.preferences";
+    public static final String BLUETOOTH_DEVICE = "bluetooth_device";
+    public static final String BLUETOOTH_DEVICE_FOLLOWED = "bluetooth_device_followed";
     public static final String PAIRED_BLUETOOTH_DEVICE = "paired_bluetooth_device";
     public static final String AVAILABLE_BLUETOOTH_DEVICE = "available_bluetooth_device";
 
@@ -49,11 +64,30 @@ public class BluetoothFacade {
 
     }
 
-    public BluetoothFacade(OnBluetoothDeviceScanListener scanListener, OnBluetoothDevicePairingListener pairingListener) {
+    public interface OnBluetoothDeviceConnectionListener {
+
+        void onConnectedDevice(BluetoothDevice dev);
+
+        void onDisconnectedDevice(BluetoothDevice dev);
+
+    }
+
+    public BluetoothFacade(OnBluetoothDeviceScanListener scanListener, OnBluetoothDevicePairingListener pairingListener, BluetoothClientConnection.OnBluetoothClientConnListener connListener, OnBluetoothDeviceConnectionListener connFollowedDevice, Context context) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothDevices = new ArrayList<>();
         mScanListener = scanListener;
         mPairingListener = pairingListener;
+        mConnListener = connListener;
+        mConnFollowedDevice = connFollowedDevice;
+        mContext = context;
+    }
+
+    public BluetoothFacade() {
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mScanListener = null;
+        mPairingListener = null;
+        mConnListener = null;
+        mConnFollowedDevice = null;
     }
 
     public boolean isSupported() {
@@ -162,33 +196,55 @@ public class BluetoothFacade {
     public void manageDevicePairing(Intent intent) {
 
         String action = intent.getAction();
+        SharedPreferences sharedPreferences = mContext.getSharedPreferences(BLUETOOTH_PREFS_FILE, Context.MODE_PRIVATE);
 
-        if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+        if (sharedPreferences.getString(BLUETOOTH_DEVICE_FOLLOWED, "").equals("")) {
 
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
 
-            switch (device.getBondState()) {
-                case BluetoothDevice.BOND_BONDING:
-                    mPairingListener.onPairingStart();
-                    Log.v(PAIRING_TAG, "BOND_BONDING");
-                    break;
-                case BluetoothDevice.BOND_BONDED:
-                    mPairingListener.onPairedDevice();
-                    Log.v(PAIRING_TAG, "BOND_BONDED");
-                    break;
-                case BluetoothDevice.BOND_NONE:
-                    mPairingListener.onUnpairedDevice(mUnpairing);
-                    Log.v(PAIRING_TAG, "BOND_NONE");
-                    break;
-                default:
-                    break;
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        mPairingListener.onPairingStart();
+                        Log.v(PAIRING_TAG, "BOND_BONDING");
+                        break;
+                    case BluetoothDevice.BOND_BONDED:
+                        mPairingListener.onPairedDevice();
+                        Log.v(PAIRING_TAG, "BOND_BONDED");
+                        break;
+                    case BluetoothDevice.BOND_NONE:
+                        mPairingListener.onUnpairedDevice(mUnpairing);
+                        Log.v(PAIRING_TAG, "BOND_NONE");
+                        break;
+                    default:
+                        break;
+                }
+
+            } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                mPairingListener.onWaitingForAuthorization();
+                Log.v(PAIRING_TAG, "ACTION_ACL_CONNECTED");
             }
 
-        } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-            mPairingListener.onWaitingForAuthorization();
-            Log.v(PAIRING_TAG, "ACTION_ACL_CONNECTED");
+        } else {
+
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                mConnFollowedDevice.onConnectedDevice(device);
+            } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                mConnFollowedDevice.onDisconnectedDevice(device);
+
+            }
+
         }
 
+
+    }
+
+    public void connect(BluetoothDevice dev) {
+        BluetoothClientConnection bcc = new BluetoothClientConnection(dev, mBluetoothAdapter, mConnListener);
+        bcc.connect();
     }
 
 }

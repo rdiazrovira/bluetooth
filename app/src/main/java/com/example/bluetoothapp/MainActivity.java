@@ -4,19 +4,23 @@ import android.Manifest;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,18 +28,22 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.bluetoothapp.adapter.DeviceAdapter;
+import com.example.bluetoothapp.utilities.BluetoothClientConnection;
 import com.example.bluetoothapp.utilities.BluetoothFacade;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.UUID;
 
+import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_DEVICE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_PREFS_FILE;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BLUETOOTH = 1, REQUEST_FINE_LOCATION = 2;
     private static final String MAIN_ACTIVITY_TAG = MainActivity.class.getSimpleName();
-    private SharedPreferences mSharedPreferences;
-    private SharedPreferences.Editor mEditor;
 
     private Button mBluetoothButton;
     private Button mScanButton;
@@ -100,30 +108,21 @@ public class MainActivity extends AppCompatActivity {
         });
 
         mClickListener = new DeviceAdapter.OnDeviceListItemClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
             @Override
             public void onItemClick(BluetoothDevice device) {
                 if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
-                    mBluetooth.unpairDevice(device);
+                    mBluetooth.connect(device);
                 } else {
                     mBluetooth.pairDevice(device);
                 }
             }
-        };
 
-        /*mDeviceList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                if (mList.get(position) instanceof BluetoothDevice) {
-                    final BluetoothDevice bluetoothDevice = (BluetoothDevice) mList.get(position);
-                    if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
-                        mBluetooth.unpairDevice(bluetoothDevice);
-                    } else {
-                        mBluetooth.pairDevice(bluetoothDevice);
-                    }
-                }
+            public void onSettingsClick(BluetoothDevice device) {
+                launchDeviceActivity(device.getAddress());
             }
-        });*/
+        };
 
         registerReceiver(mReceiver, mPairingReceiver);
     }
@@ -169,7 +168,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_exit) finish();
+        if (item.getItemId() == R.id.action_exit) {
+            finish();
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -188,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mReceiver);
+        unregisterReceiver(mPairingReceiver);
         mBluetooth.cancelDiscovery();
         if (mDialog.isShowing()) {
             mDialog.dismiss();
@@ -203,9 +205,6 @@ public class MainActivity extends AppCompatActivity {
         mDeviceList.setHasFixedSize(true);
         mDialog = createDialog("Loading available devices...");
         mPDialog = createDialog("Pairing");
-
-        mSharedPreferences = getSharedPreferences(BLUETOOTH_PREFS_FILE, Context.MODE_PRIVATE);
-        mEditor = mSharedPreferences.edit();
 
         mBluetooth = new BluetoothFacade(new BluetoothFacade.OnBluetoothDeviceScanListener() {
             @Override
@@ -251,7 +250,27 @@ public class MainActivity extends AppCompatActivity {
             public void onWaitingForAuthorization() {
                 mPDialog.dismiss();
             }
-        });
+        }, new BluetoothClientConnection.OnBluetoothClientConnListener() {
+            @Override
+            public void onSuccessConnection() {
+                Toast.makeText(MainActivity.this, "Success connection...", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailedConnection() {
+                Toast.makeText(MainActivity.this, "Failed connection...", Toast.LENGTH_LONG).show();
+            }
+        }, new BluetoothFacade.OnBluetoothDeviceConnectionListener() {
+            @Override
+            public void onConnectedDevice(BluetoothDevice dev) {
+                Toast.makeText(MainActivity.this, "Connected device: " + dev.getName(), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onDisconnectedDevice(BluetoothDevice dev) {
+                Toast.makeText(MainActivity.this, "Disconnected device: " + dev.getName(), Toast.LENGTH_LONG).show();
+            }
+        }, this);
 
         if (mBluetooth.isSupported()) {
             if (mBluetooth.isEnabled()) {
@@ -286,6 +305,12 @@ public class MainActivity extends AppCompatActivity {
         mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(pairingReceiver, mFilter);
+    }
+
+    private void launchDeviceActivity(String deviceAddress) {
+        Intent intent = new Intent(this, DeviceActivity.class);
+        intent.putExtra(BLUETOOTH_DEVICE, deviceAddress);
+        startActivity(intent);
     }
 
 }

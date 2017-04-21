@@ -32,6 +32,8 @@ public class DeviceAdapter extends RecyclerView.Adapter {
 
     public interface OnDeviceListItemClickListener {
         void onItemClick(BluetoothDevice device);
+
+        void onSettingsClick(BluetoothDevice device);
     }
 
     public ArrayList<Object> buildList(ArrayList<BluetoothDevice> devices) {
@@ -89,10 +91,19 @@ public class DeviceAdapter extends RecyclerView.Adapter {
             final BluetoothDevice device = (BluetoothDevice) mList.get(position);
             viewHolder.mDeviceNameTextView.setText(device.getName());
             viewHolder.mDeviceImageView.setImageResource(R.drawable.devices);
-            viewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+            viewHolder.mDeviceNameTextView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mListener.onItemClick(device);
+                }
+            });
+            viewHolder.mSettingsImageView.setImageResource(R.drawable.settings);
+            if (device.getBondState() != BluetoothDevice.BOND_BONDED)
+                viewHolder.mSettingsImageView.setVisibility(View.INVISIBLE);
+            viewHolder.mSettingsImageView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mListener.onSettingsClick(device);
                 }
             });
         }
@@ -112,11 +123,13 @@ public class DeviceAdapter extends RecyclerView.Adapter {
 
         TextView mDeviceNameTextView;
         ImageView mDeviceImageView;
+        ImageView mSettingsImageView;
 
         public DeviceListItemViewHolder(View itemView) {
             super(itemView);
             mDeviceNameTextView = (TextView) itemView.findViewById(R.id.DeviceNameTextView);
             mDeviceImageView = (ImageView) itemView.findViewById(R.id.DeviceImageView);
+            mSettingsImageView = (ImageView) itemView.findViewById(R.id.SettingsImageView);
         }
     }
 

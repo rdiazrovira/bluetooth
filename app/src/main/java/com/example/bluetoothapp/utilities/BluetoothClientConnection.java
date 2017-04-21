@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 public class BluetoothClientConnection extends Thread {
@@ -33,9 +35,11 @@ public class BluetoothClientConnection extends Thread {
 
         try {
             mBluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(mUUID);
+
         } catch (IOException e) {
-            Log.d("client-connection", "Create rfcomm socket: " + e.getMessage());
+            Log.v(BLUETOOTH_CLIENT_CONN, "create socket: " + e.getMessage());
         }
+
     }
 
     public void connect() {
