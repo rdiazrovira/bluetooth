@@ -3,6 +3,9 @@ package com.example.bluetoothapp.utilities;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.Build;
+import android.os.ParcelUuid;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import java.io.IOException;
@@ -12,52 +15,51 @@ import java.util.UUID;
 
 public class BluetoothClientConnection extends Thread {
 
-    BluetoothSocket mBluetoothSocket;
-    BluetoothDevice mBluetoothDevice;
-    BluetoothAdapter mBluetoothAdapter;
-    OnBluetoothClientConnListener mListener;
-
     private static final String BLUETOOTH_CLIENT_CONN = "bluetooth-client-conn";
-    public static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    public interface OnBluetoothClientConnListener {
+    private BluetoothSocket mBluetoothSocket;
+    private BluetoothDevice mBluetoothDevice;
+    private BluetoothAdapter mBluetoothAdapter;
+    BluetoothFacade.OnBluetoothClientConnListener mListener;
 
-        void onSuccessConnection();
+    private UUID mUUID = UUID.fromString("00001112-0000-1000-8000-00805f9b34fb");
+    //00000000-deca-fade-deca-deafdecacaff
+    //00001101-0000-1000-8000-00805f9b34fb
 
-        void onFailedConnection();
-
-    }
-
-    public BluetoothClientConnection(BluetoothDevice bluetoothDevice, BluetoothAdapter bluetoothAdapter, OnBluetoothClientConnListener listener) {
+    public BluetoothClientConnection(BluetoothDevice bluetoothDevice, BluetoothAdapter bluetoothAdapter, UUID uuid) {
         mBluetoothDevice = bluetoothDevice;
         mBluetoothAdapter = bluetoothAdapter;
-        mListener = listener;
-
-        try {
-            mBluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(mUUID);
-
-        } catch (IOException e) {
-            Log.v(BLUETOOTH_CLIENT_CONN, "create socket: " + e.getMessage());
-        }
-
+        mListener = null;
+        mUUID = uuid;
     }
 
-    public void connect() {
+    public boolean connect() {
 
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-            mBluetoothSocket.connect();
-            mListener.onSuccessConnection();
+            if (mBluetoothSocket != null) {
+                mBluetoothSocket.close();
+            }
+            mBluetoothSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(mUUID);
         } catch (IOException e) {
-            mListener.onFailedConnection();
+            Log.v(BLUETOOTH_CLIENT_CONN, "create socket: " + e.getMessage());
+            return false;
+        }
+
+        try {
+            mBluetoothSocket.connect();
+            return true;
+        } catch (IOException e) {
             Log.v(BLUETOOTH_CLIENT_CONN, "connect: " + e.getMessage());
             try {
                 mBluetoothSocket.close();
             } catch (IOException ioe) {
                 Log.v(BLUETOOTH_CLIENT_CONN, "close: " + ioe.getMessage());
             }
+            return false;
         }
+
 
     }
 
