@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +21,7 @@ import com.example.bluetoothapp.utilities.BluetoothFacade;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_DEVICE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_DEVICE_FOLLOWED;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_PREFS_FILE;
+import static com.example.bluetoothapp.utilities.BluetoothFacade.mUnpair;
 
 public class DeviceActivity extends AppCompatActivity {
 
@@ -29,7 +32,6 @@ public class DeviceActivity extends AppCompatActivity {
     Button mFollowButton;
     TextView mDevnameTextView;
 
-    private SharedPreferences mSharedPreferences;
     private SharedPreferences.Editor mEditor;
 
     private BroadcastReceiver mPairingReceiver = new BroadcastReceiver() {
@@ -49,6 +51,7 @@ public class DeviceActivity extends AppCompatActivity {
         initView();
 
         mUnpairButton.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onClick(View v) {
                 mBluetooth.unpairDevice(mBluetoothDevice);
@@ -73,7 +76,8 @@ public class DeviceActivity extends AppCompatActivity {
         mUnpairButton = (Button) findViewById(R.id.UnpairButton);
         mFollowButton = (Button) findViewById(R.id.FollowButton);
         mDevnameTextView = (TextView) findViewById(R.id.DevNameTextView);
-        mBluetooth = new BluetoothFacade(new BluetoothFacade.OnBluetoothDevicePairingListener() {
+        mBluetooth = new BluetoothFacade();
+        mBluetooth.setPairingListener(new BluetoothFacade.OnBluetoothDevicePairingListener() {
             @Override
             public void onPairingStart() {
                 Log.v("onPairingStart", "onPairingStart");
@@ -92,7 +96,7 @@ public class DeviceActivity extends AppCompatActivity {
             @Override
             public void onUnpairedDevice(String action) {
                 Log.v("onUnpairedDevice", "action: " + action);
-                if (action.equals(action)) {
+                if (action.equals(mUnpair)) {
                     mBluetooth.startDiscovery();
                     finish();
                 }
@@ -103,8 +107,8 @@ public class DeviceActivity extends AppCompatActivity {
         mDevnameTextView.setText(mBluetoothDevice.getName());
         mDeviceAddress = mBluetoothDevice.getAddress();
 
-        mSharedPreferences = getSharedPreferences(BLUETOOTH_PREFS_FILE, Context.MODE_PRIVATE);
-        mEditor = mSharedPreferences.edit();
+        SharedPreferences sharedPreferences = getSharedPreferences(BLUETOOTH_PREFS_FILE, Context.MODE_PRIVATE);
+        mEditor = sharedPreferences.edit();
     }
 
     private void registerReceiver(BroadcastReceiver pairingReceiver) {
@@ -126,7 +130,7 @@ public class DeviceActivity extends AppCompatActivity {
     @Override
     protected void onRestart() {
         BluetoothDevice device = mBluetooth.getBluetoothAdapter().getRemoteDevice(mDeviceAddress);
-        if (device.getBondState() != BluetoothDevice.BOND_BONDED){
+        if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
             finish();
             mBluetooth.startDiscovery();
         }

@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -31,13 +32,12 @@ import com.example.bluetoothapp.utilities.BluetoothFacade;
 import java.util.ArrayList;
 
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_DEVICE;
-import static com.example.bluetoothapp.utilities.BluetoothFacade.mUnpair;
+import static com.example.bluetoothapp.utilities.BluetoothFacade.mPair;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BLUETOOTH = 1, REQUEST_FINE_LOCATION = 2;
     private static final String MAIN_ACTIVITY_TAG = MainActivity.class.getSimpleName();
-    public static final String ACTION_TAG = "action";
 
     private Button mBluetoothButton;
     private Button mScanButton;
@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private BroadcastReceiver mConnectionReceiver = new BroadcastReceiver() {
+        @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
         @Override
         public void onReceive(Context context, Intent intent) {
             mBluetooth.manageDeviceConnection(intent);
@@ -75,8 +76,16 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private BroadcastReceiver mAdapterReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mBluetooth.manageAdapter(intent);
+        }
+    };
+
     private DeviceAdapter.OnDeviceListItemClickListener mClickListener;
 
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (mBluetooth.isEnabled()) {
                     mBluetooth.disable();
-                    mBluetoothButton.setText("Enable");
+                    mBluetoothButton.setText(R.string.enable);
                     mDeviceList.setAdapter(null);
                 } else {
                     Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -133,16 +142,13 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        registerReceiver(mDiscoveryReceiver, mPairingReceiver, mConnectionReceiver);
+        registerReceiver(mDiscoveryReceiver, mPairingReceiver,
+                mConnectionReceiver, mAdapterReceiver);
     }
 
     private boolean isAccessGrantedToTheLocation() {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            return false;
-        }
-        return true;
+        return ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override
@@ -164,9 +170,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         if (mBluetooth.isEnabled()) {
-            mBluetoothButton.setText("Disable");
+            mBluetoothButton.setText(R.string.disable);
         } else {
-            mBluetoothButton.setText("Enable");
+            mBluetoothButton.setText(R.string.enable);
             mDeviceList.setAdapter(null);
         }
         super.onResume();
@@ -190,10 +196,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            mBluetoothButton.setText("Disable");
+            mBluetoothButton.setText(R.string.disable);
         } else if (resultCode == RESULT_CANCELED) {
             Toast.makeText(this, "Bluetooth disabled!", Toast.LENGTH_SHORT).show();
-            mBluetoothButton.setText("Enable");
+            mBluetoothButton.setText(R.string.enable);
         }
     }
 
@@ -204,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(mPairingReceiver);
         unregisterReceiver(mConnectionReceiver);
         unregisterReceiver(mNotificationsReceiver);
+        unregisterReceiver(mAdapterReceiver);
         mBluetooth.cancelDiscovery();
         if (mDialog.isShowing()) {
             mDialog.dismiss();
@@ -218,10 +225,18 @@ public class MainActivity extends AppCompatActivity {
         mDeviceList.setLayoutManager(linearLayoutManager);
         mDeviceList.setHasFixedSize(true);
         mDialog = createDialog("Loading available devices...");
+        mDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                mBluetooth.cancelDiscovery();
+            }
+        });
         mPDialog = createDialog("Pairing..");
         mConnDialog = createDialog("Connecting..");
 
-        mBluetooth = new BluetoothFacade(new BluetoothFacade.OnBluetoothDeviceScanListener() {
+        mBluetooth = new BluetoothFacade(this);
+
+        mBluetooth.setScanListener(new BluetoothFacade.OnBluetoothDeviceScanListener() {
             @Override
             public void onScanFinishedAndDevicesFound() {
                 mDialog.dismiss();
@@ -245,7 +260,9 @@ public class MainActivity extends AppCompatActivity {
                 mDeviceAdapter = new DeviceAdapter(devices, mClickListener);
                 mDeviceList.setAdapter(mDeviceAdapter);
             }
-        }, new BluetoothFacade.OnBluetoothDevicePairingListener() {
+        });
+
+        mBluetooth.setPairingListener(new BluetoothFacade.OnBluetoothDevicePairingListener() {
             @Override
             public void onPairedDevice() {
                 if (mPDialog.isShowing()) mPDialog.dismiss();
@@ -255,6 +272,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onUnpairedDevice(String action) {
                 if (mPDialog.isShowing()) mPDialog.dismiss();
+                if (action.equals(mPair)) {
+                    Toast.makeText(MainActivity.this, "Communication cannot be established. ",
+                            Toast.LENGTH_LONG).show();
+                }
             }
 
             @Override
@@ -266,7 +287,9 @@ public class MainActivity extends AppCompatActivity {
             public void onWaitingForAuthorization() {
                 mPDialog.dismiss();
             }
-        }, new BluetoothFacade.OnBluetoothClientConnListener() {
+        });
+
+        mBluetooth.setConnListener(new BluetoothFacade.OnBluetoothClientConnListener() {
             @Override
             public void onConnectionStarted() {
                 mConnDialog.show();
@@ -285,7 +308,9 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Failed connection...", Toast.LENGTH_LONG).show();
                 mConnDialog.dismiss();
             }
-        }, new BluetoothFacade.OnDeviceFollowedNotificationListener() {
+        });
+
+        mBluetooth.setNotificationListener(new BluetoothFacade.OnDeviceFollowedNotificationListener() {
             @Override
             public void onDeviceConnected(String deviceName) {
                 Toast.makeText(MainActivity.this, deviceName + " connected", Toast.LENGTH_LONG)
@@ -297,13 +322,25 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, deviceName + " disconnected", Toast.LENGTH_LONG)
                         .show();
             }
-        }, this);
+        });
+
+        mBluetooth.setAdapterListener(new BluetoothFacade.OnBluetoothAdapterListener() {
+            @Override
+            public void onEnable() {
+                mBluetoothButton.setText(R.string.disable);
+            }
+
+            @Override
+            public void onDisable() {
+                mBluetoothButton.setText(R.string.enable);
+            }
+        });
 
         if (mBluetooth.isSupported()) {
             if (mBluetooth.isEnabled()) {
-                mBluetoothButton.setText("Disable");
+                mBluetoothButton.setText(R.string.disable);
             } else {
-                mBluetoothButton.setText("Enable");
+                mBluetoothButton.setText(R.string.enable);
             }
         } else {
             Toast.makeText(MainActivity.this, "This device doesn't support Bluetooth!",
@@ -319,12 +356,21 @@ public class MainActivity extends AppCompatActivity {
         dialog.setMessage(message);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         dialog.setIndeterminate(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                Log.v(MAIN_ACTIVITY_TAG, "setOnCancelListener");
+            }
+        });
         return dialog;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     private void registerReceiver(BroadcastReceiver discoveryReceiver,
                                   BroadcastReceiver pairingReceiver,
-                                  BroadcastReceiver connectionReceiver) {
+                                  BroadcastReceiver connectionReceiver,
+                                  BroadcastReceiver adapterReceiver) {
         IntentFilter mFilter = new IntentFilter();
         /*Devices discovery (actions)*/
         mFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
@@ -347,6 +393,10 @@ public class MainActivity extends AppCompatActivity {
         mFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         registerReceiver(mNotificationsReceiver, mFilter);
+        mFilter = new IntentFilter();
+        /*Changes on adapter state*/
+        mFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(mAdapterReceiver, mFilter);
     }
 
     private void launchDeviceActivity(String deviceAddress) {
@@ -354,6 +404,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(BLUETOOTH_DEVICE, deviceAddress);
         startActivity(intent);
     }
+
 
 }
 

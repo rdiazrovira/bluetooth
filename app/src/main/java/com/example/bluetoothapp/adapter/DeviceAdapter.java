@@ -35,7 +35,7 @@ public class DeviceAdapter extends RecyclerView.Adapter {
         void onSettingsClick(BluetoothDevice device);
     }
 
-    public ArrayList<Object> buildList(ArrayList<BluetoothDevice> devices) {
+    private ArrayList<Object> buildList(ArrayList<BluetoothDevice> devices) {
         ArrayList<Object> list = new ArrayList<>();
         int count = 0;
         for (BluetoothDevice device : devices) {
@@ -81,9 +81,9 @@ public class DeviceAdapter extends RecyclerView.Adapter {
             DeviceListHeaderViewHolder viewHolder = (DeviceListHeaderViewHolder) holder;
             String section = (String) mList.get(position);
             if (section.equals(AVAILABLE_BLUETOOTH_DEVICE)) {
-                viewHolder.mSectionName.setText("Available devices");
+                viewHolder.mSectionName.setText(R.string.available_devices);
             } else {
-                viewHolder.mSectionName.setText("Paired devices");
+                viewHolder.mSectionName.setText(R.string.paired_devices);
             }
         } else if (holder instanceof DeviceListItemViewHolder) {
             DeviceListItemViewHolder viewHolder = (DeviceListItemViewHolder) holder;
@@ -97,7 +97,7 @@ public class DeviceAdapter extends RecyclerView.Adapter {
                 }
             });
             viewHolder.mSettingsImageView.setImageResource(R.drawable.settings);
-            if (device.getBondState() != BluetoothDevice.BOND_BONDED){
+            if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
                 viewHolder.mSettingsImageView.setVisibility(View.INVISIBLE);
             }
             viewHolder.mSettingsImageView.setOnClickListener(new View.OnClickListener() {
@@ -119,13 +119,13 @@ public class DeviceAdapter extends RecyclerView.Adapter {
         return mList.size();
     }
 
-    public class DeviceListItemViewHolder extends RecyclerView.ViewHolder {
+    private class DeviceListItemViewHolder extends RecyclerView.ViewHolder {
 
         TextView mDeviceNameTextView;
         ImageView mDeviceImageView;
         ImageView mSettingsImageView;
 
-        public DeviceListItemViewHolder(View itemView) {
+        DeviceListItemViewHolder(View itemView) {
             super(itemView);
             mDeviceNameTextView = (TextView) itemView.findViewById(R.id.DeviceNameTextView);
             mDeviceImageView = (ImageView) itemView.findViewById(R.id.DeviceImageView);
@@ -133,11 +133,11 @@ public class DeviceAdapter extends RecyclerView.Adapter {
         }
     }
 
-    public class DeviceListHeaderViewHolder extends RecyclerView.ViewHolder {
+    private class DeviceListHeaderViewHolder extends RecyclerView.ViewHolder {
 
-        TextView mSectionName;
+        private TextView mSectionName;
 
-        public DeviceListHeaderViewHolder(View itemView) {
+        DeviceListHeaderViewHolder(View itemView) {
             super(itemView);
             mSectionName = (TextView) itemView.findViewById(R.id.SectionNameTextView);
         }

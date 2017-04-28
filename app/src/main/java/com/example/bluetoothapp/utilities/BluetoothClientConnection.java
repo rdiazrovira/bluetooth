@@ -4,36 +4,33 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Build;
-import android.os.ParcelUuid;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.UUID;
 
-public class BluetoothClientConnection extends Thread {
+class BluetoothClientConnection extends Thread {
 
     private static final String BLUETOOTH_CLIENT_CONN = "bluetooth-client-conn";
 
     private BluetoothSocket mBluetoothSocket;
     private BluetoothDevice mBluetoothDevice;
     private BluetoothAdapter mBluetoothAdapter;
-    BluetoothFacade.OnBluetoothClientConnListener mListener;
 
     private UUID mUUID = UUID.fromString("00001112-0000-1000-8000-00805f9b34fb");
     //00000000-deca-fade-deca-deafdecacaff
+    //0000112f-0000-1000-8000-00805f9b34fb
     //00001101-0000-1000-8000-00805f9b34fb
 
-    public BluetoothClientConnection(BluetoothDevice bluetoothDevice, BluetoothAdapter bluetoothAdapter, UUID uuid) {
+    BluetoothClientConnection(BluetoothDevice bluetoothDevice, BluetoothAdapter bluetoothAdapter, UUID uuid) {
         mBluetoothDevice = bluetoothDevice;
         mBluetoothAdapter = bluetoothAdapter;
-        mListener = null;
         mUUID = uuid;
     }
 
-    public boolean connect() {
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    boolean connect() {
 
         mBluetoothAdapter.cancelDiscovery();
 
@@ -41,7 +38,7 @@ public class BluetoothClientConnection extends Thread {
             if (mBluetoothSocket != null) {
                 mBluetoothSocket.close();
             }
-            mBluetoothSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(mUUID);
+            mBluetoothSocket = mBluetoothDevice.createInsecureRfcommSocketToServiceRecord(mUUID);
         } catch (IOException e) {
             Log.v(BLUETOOTH_CLIENT_CONN, "create socket: " + e.getMessage());
             return false;
