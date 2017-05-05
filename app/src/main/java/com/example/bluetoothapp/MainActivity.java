@@ -31,6 +31,7 @@ import com.example.bluetoothapp.utilities.BluetoothFacade;
 
 import java.util.ArrayList;
 
+import static android.bluetooth.BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_DEVICE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.mPair;
 
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BLUETOOTH = 1, REQUEST_FINE_LOCATION = 2;
     private static final String MAIN_ACTIVITY_TAG = MainActivity.class.getSimpleName();
+    private static final int REQUEST_BT_SETTINGS = 3;
 
     private Button mBluetoothButton;
     private Button mScanButton;
@@ -132,7 +134,8 @@ public class MainActivity extends AppCompatActivity {
                 if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
                     mBluetooth.connectTo(device);
                 } else {
-                    mBluetooth.pairDevice(device);
+                    //mBluetooth.pairDevice(device);
+                    startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
                 }
             }
 
@@ -380,9 +383,9 @@ public class MainActivity extends AppCompatActivity {
         mFilter = new IntentFilter();
         /*Device pairing (actions)*/
         mFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-        mFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        //mFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        //mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        //mFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(pairingReceiver, mFilter);
         mFilter = new IntentFilter();
         /*Device connection*/
@@ -402,9 +405,7 @@ public class MainActivity extends AppCompatActivity {
     private void launchDeviceActivity(String deviceAddress) {
         Intent intent = new Intent(this, DeviceActivity.class);
         intent.putExtra(BLUETOOTH_DEVICE, deviceAddress);
-        startActivity(intent);
     }
-
 
 }
 

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
@@ -38,6 +39,8 @@ public class BluetoothFacade {
 
     private static final String BLUETOOTH_UTIL_TAG = "bluetooth_util";
     private static final String PAIRING_TAG = "pairing_tag";
+    private static final String CONNECTING_TAG = "connecting_tag";
+    private static final String DISCOVERING_TAG = "discovering_tag";
 
     private String mAction;
     public static String mUnpair = "bluetooth_facade_unpair";
@@ -178,7 +181,7 @@ public class BluetoothFacade {
 
         if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
 
-            Log.v(BLUETOOTH_UTIL_TAG, "ACTION_DISCOVERY_STARTED");
+            Log.v(DISCOVERING_TAG, "ACTION_DISCOVERY_STARTED");
 
             mDiscoveryStartTime = System.currentTimeMillis();
 
@@ -189,12 +192,12 @@ public class BluetoothFacade {
 
         } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
 
-            Log.v(BLUETOOTH_UTIL_TAG, "ACTION_DISCOVERY_FINISHED");
+            Log.v(DISCOVERING_TAG, "ACTION_DISCOVERY_FINISHED");
             toFinishDiscovery();
 
         } else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
 
-            Log.v(BLUETOOTH_UTIL_TAG, "ACTION_FOUND");
+            Log.v(DISCOVERING_TAG, "ACTION_FOUND");
 
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (device.getName() != null && isNewDevice(device.getName())) {
@@ -250,8 +253,16 @@ public class BluetoothFacade {
         try {
             Method method = device.getClass().getMethod("createBond", (Class[]) null);
             method.invoke(device, (Object[]) null);
+
+            byte[] pin = (byte[]) BluetoothDevice.class.getMethod("convertPinToBytes", String.class).invoke(BluetoothDevice.class, "0000");
+
+            Log.v(PAIRING_TAG, "PIN: " + pin);
+
+            method = device.getClass().getMethod("setPin", byte[].class);
+            method.invoke(device, pin);
+
         } catch (Exception e) {
-            e.getMessage();
+            Log.v(PAIRING_TAG, "pair: " + e.getMessage());
         }
     }
 
@@ -265,6 +276,8 @@ public class BluetoothFacade {
         String action = intent.getAction();
 
         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+        Log.v(PAIRING_TAG, "ac: " + action);
 
         if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
 
@@ -292,6 +305,7 @@ public class BluetoothFacade {
             mPairingListener.onWaitingForAuthorization();
             Log.v(PAIRING_TAG, "ACTION_ACL_CONNECTED");
         }
+
     }
 
     @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -304,21 +318,52 @@ public class BluetoothFacade {
         if (BluetoothDevice.ACTION_UUID.equals(action) && mAction.equals(mConnect)) {
 
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            Parcelable[] uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
-            UUID[] uuidCandidates = uuidCandidates(uuidExtra);
+            ArrayList<UUID> uuidCandidates = getUUIDCandidates(intent);
 
             for (UUID uuidCandidate : uuidCandidates) {
+
+                Log.v(CONNECTING_TAG, "UUID: " + uuidCandidate);
 
                 BluetoothClientConnection bcc = new BluetoothClientConnection(device,
                         mBluetoothAdapter, uuidCandidate);
                 if (bcc.connect()) {
-                    Log.v(BLUETOOTH_UTIL_TAG, "UUID Conn: " + uuidCandidate);
+                    Log.v(CONNECTING_TAG, "UUID Conn: " + uuidCandidate);
                     successfulConnection = true;
-                    break;
+                    //break;
                 }
-                Log.v(BLUETOOTH_UTIL_TAG, "UUID: " + uuidCandidate);
 
             }
+
+            /*
+                0000111e-0000-1000-8000-00805f9b34fb
+                0000110b-0000-1000-8000-00805f9b34fb
+                0000110e-0000-1000-8000-00805f9b34fb
+                00001101-0000-1000-8000-00805f9b34fb
+            /*
+                0000110a-0000-1000-8000-00805f9b34fb
+                00001105-0000-1000-8000-00805f9b34fb
+                00001115-0000-1000-8000-00805f9b34fb
+                00001116-0000-1000-8000-00805f9b34fb
+                0000112f-0000-1000-8000-00805f9b34fb
+                00001112-0000-1000-8000-00805f9b34fb
+                0000111f-0000-1000-8000-00805f9b34fb
+                0000111f-0000-1000-8000-00805f9b34fb
+                00001132-0000-1000-8000-00805f9b34fb
+                00000000-0000-1000-8000-00805f9b34fb
+                a49eb41e-cb06-495c-9f4f-bb80a90cdf00
+                00001101-0000-1000-8000-00805f9b34fb
+            */
+
+            /*
+                0000110a-0000-1000-8000-00805f9b34fb
+                00001105-0000-1000-8000-00805f9b34fb
+                00001116-0000-1000-8000-00805f9b34fb
+                00001117-0000-1000-8000-00805f9b34fb
+                0000112f-0000-1000-8000-00805f9b34fb
+                00001112-0000-1000-8000-00805f9b34fb
+                0000111f-0000-1000-8000-00805f9b34fb
+                00001101-0000-1000-8000-00805f9b34fb
+            */
 
             if (successfulConnection) {
                 mConnListener.onSuccessfulConnection();
@@ -331,14 +376,21 @@ public class BluetoothFacade {
 
     }
 
-    private UUID[] uuidCandidates(Parcelable[] p) {
-        int size = p.length + 1;
-        UUID[] uuids = new UUID[size];
-        for (int index = 0; index < p.length; index++) {
-            uuids[index] = UUID.fromString(p[index].toString());
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
+    private ArrayList<UUID> getUUIDCandidates(Intent intent) {
+
+        ArrayList<UUID> uuids = new ArrayList<>();
+
+        Parcelable[] extraUuids = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+
+        for (int index = 0; index < extraUuids.length; index++) {
+            //if (!extraUuids[index].toString().equals("0000111e-0000-1000-8000-00805f9b34fb")) {
+            uuids.add(UUID.fromString(extraUuids[index].toString()));
+            //}
         }
-        int lastIndex = size - 1;
-        uuids[lastIndex] = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+        //uuids.add(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+
         return uuids;
     }
 
@@ -346,11 +398,15 @@ public class BluetoothFacade {
 
         String action = intent.getAction();
 
+        Log.v(BLUETOOTH_UTIL_TAG, "action 2: " + action);
+
         BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
         SharedPreferences sharedPreferences = mContext.getSharedPreferences(BLUETOOTH_PREFS_FILE,
                 Context.MODE_PRIVATE);
 
-        Log.v(BLUETOOTH_UTIL_TAG, "Action: " + mAction);
+
+        Log.v(BLUETOOTH_UTIL_TAG, "Action: " + action);
+        Log.v(BLUETOOTH_UTIL_TAG, "Device: " + device.getName() + ", " + device.getAddress() + ", " + device.getBondState());
 
         if (sharedPreferences.getString(BLUETOOTH_DEVICE_FOLLOWED, "").equals(device.getAddress())
                 && (mAction.equals(""))) {
@@ -390,6 +446,8 @@ public class BluetoothFacade {
         }
 
     }
+
+
 
 
 }
