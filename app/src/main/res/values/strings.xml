@@ -6,4 +6,8 @@
     <string name="disable">Disable</string>
     <string name="available_devices">Available devices</string>
     <string name="paired_devices">Paired devices</string>
+    <string name="stop_scan">STOP</string>
+    <string name="scan">SCAN</string>
+    <string name="adapter_dialog_title">Bluetooth Disabled</string>
+    <string name="device_dialog_title">Device Not Paired</string>
 </resources>

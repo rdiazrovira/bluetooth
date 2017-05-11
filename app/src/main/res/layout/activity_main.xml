@@ -7,30 +7,11 @@
     tools:context="com.example.bluetoothapp.MainActivity">
 
     <Button
-        android:id="@+id/BluetoothButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="25dp"
-        android:layout_marginLeft="25dp"
-        android:layout_marginRight="25dp"
-        android:layout_marginTop="25dp"
-        android:background="#FF3F51B5"
-        android:text="Enable"
-        android:textColor="@android:color/background_light"
-        android:textSize="16dp"/>
-
-    <Button
         android:id="@+id/ScanButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/BluetoothButton"
-        android:layout_alignLeft="@+id/BluetoothButton"
-        android:layout_alignRight="@+id/BluetoothButton"
-        android:layout_alignStart="@+id/BluetoothButton"
-        android:layout_alignTop="@+id/BluetoothButton"
-        android:layout_marginTop="61dp"
+        android:layout_alignParentTop="true"
+        android:layout_margin="20dp"
         android:background="#FF3F51B5"
         android:text="Scan"
         android:textColor="@android:color/background_light"
@@ -41,13 +22,7 @@
         android:id="@+id/DeviceListRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignEnd="@+id/BluetoothButton"
-        android:layout_alignLeft="@+id/BluetoothButton"
-        android:layout_alignRight="@+id/BluetoothButton"
-        android:layout_alignStart="@+id/BluetoothButton"
         android:layout_below="@+id/ScanButton"
-        android:layout_marginBottom="20dp"
-        android:layout_marginTop="20dp"
         android:scrollbars="vertical"/>
 
 </RelativeLayout>
