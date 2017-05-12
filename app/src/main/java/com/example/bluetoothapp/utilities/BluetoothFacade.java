@@ -99,6 +99,7 @@ public class BluetoothFacade {
     }
 
     public ArrayList<BluetoothDevice> getBluetoothDevices() {
+        mBluetoothDevices.addAll(getPairedBluetoothDevices());
         return mBluetoothDevices;
     }
 
@@ -124,6 +125,8 @@ public class BluetoothFacade {
     public void manageDeviceDiscovery(Intent intent) {
 
         String action = intent.getAction();
+
+        Log.v(DISCOVERING_TAG, "Action: " + action);
 
         switch (action) {
             case BluetoothAdapter.ACTION_DISCOVERY_STARTED:

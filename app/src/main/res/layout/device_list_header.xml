@@ -15,7 +15,8 @@
         android:layout_marginRight="13dp"
         android:layout_marginEnd="13dp"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
+        android:layout_alignParentStart="true"
+        android:textSize="12dp"/>
 
     <ProgressBar
         android:id="@+id/ScanningProgressBar"
@@ -25,7 +26,8 @@
         android:layout_alignParentTop="true"
         android:layout_marginRight="10dp"
         android:layout_toLeftOf="@+id/ScanningTextView"
-        android:progressDrawable="@drawable/discovery_progress_color"/>
+        android:progressDrawable="@drawable/discovery_progress_color"
+        android:layout_alignBottom="@+id/ScanningTextView"/>
 
     <TextView
         android:id="@+id/ScanningTextView"
@@ -34,7 +36,8 @@
         android:text="Scanning..."
         android:layout_centerVertical="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"/>
+        android:layout_alignParentEnd="true"
+        android:textSize="12dp"/>
 
 
 </RelativeLayout>

@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -100,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
     private void registerReceiver() {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
         intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mDiscoveryReceiver, intentFilter);
         intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
@@ -276,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
     private AlertDialog createAdapterDialog() {
         AlertDialog dialog = new AlertDialog.Builder(this).create();
         dialog.setTitle(R.string.adapter_dialog_title);
-        dialog.setMessage("In order for Bluetooth App, " +
+        dialog.setMessage("In order for Bluetooth App to sample text, " +
                 "Bluetooth will need to be enabled on your phone.\n" +
                 "Do you want to continue with bluetooth enable?");
         dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes",
@@ -312,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
-                        startActivityForResult(new Intent(android.provider.Settings.ACTION_SETTINGS), 0);
+                        startActivityForResult(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS), 0);
                     }
                 });
         return dialog;

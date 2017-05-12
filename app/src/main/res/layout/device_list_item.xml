@@ -29,6 +29,6 @@
         android:maxLines="1"
         android:paddingTop="15dp"
         android:text=" - "
-        android:textSize="18dp"/>
+        android:textSize="14dp"/>
 
 </RelativeLayout>
