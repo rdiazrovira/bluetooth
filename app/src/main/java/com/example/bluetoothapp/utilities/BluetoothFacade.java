@@ -106,6 +106,8 @@ public class BluetoothFacade {
     public static String getDeviceClass(BluetoothDevice device) {
         int deviceClass = device.getBluetoothClass().getDeviceClass();
         switch (deviceClass) {
+            case BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE:
+                return "HANDSFREE";
             case BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO:
                 return "CAR_AUDIO";
             case BluetoothClass.Device.COMPUTER_LAPTOP:

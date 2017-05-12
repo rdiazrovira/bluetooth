@@ -183,6 +183,8 @@ public class DeviceAdapter extends RecyclerView.Adapter {
     private int getImage(BluetoothDevice device) {
         int deviceClass = device.getBluetoothClass().getDeviceClass();
         switch (deviceClass) {
+            case BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE:
+                return R.drawable.handsfree;
             case BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO:
                 return R.drawable.car;
             case BluetoothClass.Device.COMPUTER_LAPTOP:
