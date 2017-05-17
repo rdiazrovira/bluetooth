@@ -1,5 +1,6 @@
 package com.example.bluetoothapp;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -8,8 +9,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -28,11 +33,12 @@ import java.util.ArrayList;
 
 import static com.example.bluetoothapp.utilities.BluetoothFacade.BLUETOOTH_PREFS_FILE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.REQUEST_ENABLE_BLUETOOTH;
+import static com.example.bluetoothapp.utilities.BluetoothFacade.REQUEST_FINE_LOCATION;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String MAIN_ACTIVITY_TAG = "main_activity_tag";
-    private static final String BLUETOOTH_DEVICE_FOLLOWED = "bluetooth_device_followed";
+    public static final String BLUETOOTH_DEVICE_FOLLOWED = "bluetooth_device_followed";
 
     BluetoothFacade mBluetooth;
     private DeviceAdapter mDeviceAdapter;
@@ -56,13 +62,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private BroadcastReceiver mNotificationReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            mBluetooth.manageConnectionNotifications(intent);
-        }
-    };
-
     private SharedPreferences mSharedPreferences;
     private SharedPreferences.Editor mEditor;
 
@@ -77,15 +76,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (mBluetooth.isEnabled()) {
-                    if (mBluetooth.isDiscovering()) {
-                        Log.v(MAIN_ACTIVITY_TAG, "isDiscovering()");
-                        mScanButton.setText(R.string.scan);
-                        mBluetooth.cancelDiscovery();
-                        Log.v(MAIN_ACTIVITY_TAG, "cancelDiscovery()");
+                    if (isAccessGrantedToTheLocation()) {
+                        if (mBluetooth.isDiscovering()) {
+                            Log.v(MAIN_ACTIVITY_TAG, "isDiscovering()");
+                            mScanButton.setText(R.string.scan);
+                            mBluetooth.cancelDiscovery();
+                            Log.v(MAIN_ACTIVITY_TAG, "cancelDiscovery()");
+                        } else {
+                            mScanButton.setText(R.string.stop_scan);
+                            mBluetooth.startDiscovery();
+                            Log.v(MAIN_ACTIVITY_TAG, "startDiscovery()");
+                        }
                     } else {
-                        mScanButton.setText(R.string.stop_scan);
-                        mBluetooth.startDiscovery();
-                        Log.v(MAIN_ACTIVITY_TAG, "startDiscovery()");
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                REQUEST_FINE_LOCATION);
                     }
                 } else {
                     Toast.makeText(MainActivity.this, "Bluetooth will need to be " +
@@ -98,6 +103,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private boolean isAccessGrantedToTheLocation() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void registerReceiver() {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
@@ -107,10 +117,22 @@ public class MainActivity extends AppCompatActivity {
         intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mAdapterReceiver, intentFilter);
-        intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        registerReceiver(mNotificationReceiver, intentFilter);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_FINE_LOCATION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mScanButton.setText(R.string.stop_scan);
+                mBluetooth.startDiscovery();
+                Log.v(MAIN_ACTIVITY_TAG, "startDiscovery()");
+            } else {
+                Toast.makeText(MainActivity.this, "Please grant permission to location access" +
+                        " to discover the available devices.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     @Override
@@ -133,7 +155,6 @@ public class MainActivity extends AppCompatActivity {
         Log.v(MAIN_ACTIVITY_TAG, "onDestroy");
         unregisterReceiver(mDiscoveryReceiver);
         unregisterReceiver(mAdapterReceiver);
-        unregisterReceiver(mNotificationReceiver);
         mBluetooth.cancelDiscovery();
         super.onDestroy();
     }
@@ -238,25 +259,26 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private BluetoothFacade.OnDeviceFollowedNotificationListener mNotificationListener = new BluetoothFacade.OnDeviceFollowedNotificationListener() {
-        @Override
-        public void onDeviceConnected(BluetoothDevice device) {
-            if (isTheDeviceFollowed(device)) {
-                Log.v(MAIN_ACTIVITY_TAG, device.getName() + " connected.");
-                Toast.makeText(MainActivity.this, device.getName() + " connected. ",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
+    private BluetoothFacade.OnDeviceFollowedNotificationListener mNotificationListener =
+            new BluetoothFacade.OnDeviceFollowedNotificationListener() {
+                @Override
+                public void onDeviceConnected(BluetoothDevice device) {
+                    if (isTheDeviceFollowed(device)) {
+                        Log.v(MAIN_ACTIVITY_TAG, device.getName() + " connected.");
+                        Toast.makeText(MainActivity.this, device.getName() + " connected. ",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
 
-        @Override
-        public void onDeviceDisconnected(BluetoothDevice device) {
-            if (isTheDeviceFollowed(device)) {
-                Log.v(MAIN_ACTIVITY_TAG, device.getName() + " disconnected.");
-                Toast.makeText(MainActivity.this, device.getName() + " disconnected. ",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
-    };
+                @Override
+                public void onDeviceDisconnected(BluetoothDevice device) {
+                    if (isTheDeviceFollowed(device)) {
+                        Log.v(MAIN_ACTIVITY_TAG, device.getName() + " disconnected.");
+                        Toast.makeText(MainActivity.this, device.getName() + " disconnected. ",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+            };
 
     private DeviceAdapter.OnItemClickListener mItemClickListener = new DeviceAdapter.OnItemClickListener() {
         @Override
@@ -270,6 +292,8 @@ public class MainActivity extends AppCompatActivity {
                         device.getName(), Toast.LENGTH_LONG).show();
                 mEditor.putString(BLUETOOTH_DEVICE_FOLLOWED, device.getAddress());
                 mEditor.commit();
+
+                startService(new Intent(MainActivity.this, BluetoothConnService.class));
             }
         }
     };
@@ -320,7 +344,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isTheDeviceFollowed(BluetoothDevice device) {
-        return mSharedPreferences.getString(BLUETOOTH_DEVICE_FOLLOWED, "").equals(device.getAddress());
+        return mSharedPreferences.getString(BLUETOOTH_DEVICE_FOLLOWED, "")
+                .equals(device.getAddress());
     }
 
 }

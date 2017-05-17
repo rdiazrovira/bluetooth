@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class BluetoothFacade {
@@ -19,6 +21,7 @@ public class BluetoothFacade {
     private OnBluetoothAdapterListener mAdapterListener;
 
     public static final int REQUEST_ENABLE_BLUETOOTH = 1;
+    public static final int REQUEST_FINE_LOCATION = 2;
     public static final String BLUETOOTH_PREFS_FILE = "bluetooth.facade.preferences";
     public static final String PAIRED_BLUETOOTH_DEVICE = "paired_bluetooth_device";
     public static final String AVAILABLE_BLUETOOTH_DEVICE = "available_bluetooth_device";
@@ -103,20 +106,10 @@ public class BluetoothFacade {
         return mBluetoothDevices;
     }
 
-    public static String getDeviceClass(BluetoothDevice device) {
+    public static String getDeviceClassDescription(BluetoothDevice device) {
+        Map<Integer, String> deviceClasses = getDeviceClasses();
         int deviceClass = device.getBluetoothClass().getDeviceClass();
-        switch (deviceClass) {
-            case BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE:
-                return "HANDSFREE";
-            case BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO:
-                return "CAR_AUDIO";
-            case BluetoothClass.Device.COMPUTER_LAPTOP:
-                return "COMPUTER_LAPTOP";
-            case BluetoothClass.Device.PHONE_SMART:
-                return "PHONE_SMART";
-            default:
-                return "UNKNOWN";
-        }
+        return deviceClasses.get(deviceClass) == null ? "UNKNOWN" : deviceClasses.get(deviceClass);
     }
 
     public static String getDeviceType(BluetoothDevice device) {
@@ -148,6 +141,8 @@ public class BluetoothFacade {
 
                 Log.v(DISCOVERING_TAG, "ACTION_FOUND");
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log.v(BLUETOOTH_FACADE_TAG, "Dev-name: " + device.getName() +
+                        " / Dev-class: " + getDeviceClassDescription(device));
                 if (device.getName() != null && isNewDevice(device.getName())) {
                     Log.v(DISCOVERING_TAG, "NEW DEVICE: " + device.getName());
                     mBluetoothDevices.add(device);
@@ -166,6 +161,8 @@ public class BluetoothFacade {
         Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
         ArrayList<BluetoothDevice> pairedDevices = new ArrayList<>();
         for (BluetoothDevice device : devices) {
+            Log.v(BLUETOOTH_FACADE_TAG, "Dev-name: " + device.getName() +
+                    " / Dev-class: " + getDeviceClassDescription(device));
             if (device.getName() != null && isNewDevice(device.getName())) {
                 Log.v(BLUETOOTH_FACADE_TAG, "PAIRED DEVICE: " + device.getName());
                 pairedDevices.add(device);
@@ -238,6 +235,71 @@ public class BluetoothFacade {
             }
         }
 
+    }
+
+    private static Map<Integer, String> getDeviceClasses() {
+        Map<Integer, String> deviceClasses = new HashMap<>();
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_UNCATEGORIZED, "COMPUTER_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_DESKTOP, "COMPUTER_DESKTOP");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_SERVER, "COMPUTER_SERVER");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_LAPTOP, "COMPUTER_LAPTOP");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_HANDHELD_PC_PDA,
+                "COMPUTER_HANDHELD_PC_PDA");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_PALM_SIZE_PC_PDA,
+                "COMPUTER_PALM_SIZE_PC_PDA");
+        deviceClasses.put(BluetoothClass.Device.COMPUTER_WEARABLE, "COMPUTER_WEARABLE");
+        deviceClasses.put(BluetoothClass.Device.PHONE_UNCATEGORIZED, "PHONE_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.PHONE_CELLULAR, "PHONE_CELLULAR");
+        deviceClasses.put(BluetoothClass.Device.PHONE_CORDLESS, "PHONE_CORDLESS");
+        deviceClasses.put(BluetoothClass.Device.PHONE_SMART, "PHONE_SMART");
+        deviceClasses.put(BluetoothClass.Device.PHONE_MODEM_OR_GATEWAY, "PHONE_MODEM_OR_GATEWAY");
+        deviceClasses.put(BluetoothClass.Device.PHONE_ISDN, "PHONE_ISDN");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_UNCATEGORIZED,
+                "AUDIO_VIDEO_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET,
+                "AUDIO_VIDEO_WEARABLE_HEADSET");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE, "AUDIO_VIDEO_HANDSFREE");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_MICROPHONE, "AUDIO_VIDEO_MICROPHONE");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER, "AUDIO_VIDEO_LOUDSPEAKER");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES, "AUDIO_VIDEO_HEADPHONES");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO,
+                "AUDIO_VIDEO_PORTABLE_AUDIO");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO, "AUDIO_VIDEO_CAR_AUDIO");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_SET_TOP_BOX, "AUDIO_VIDEO_SET_TOP_BOX");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_HIFI_AUDIO, "AUDIO_VIDEO_HIFI_AUDIO");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VCR, "AUDIO_VIDEO_VCR");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VIDEO_CAMERA,
+                "AUDIO_VIDEO_VIDEO_CAMERA");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_CAMCORDER, "AUDIO_VIDEO_CAMCORDER");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VIDEO_MONITOR,
+                "AUDIO_VIDEO_VIDEO_MONITOR");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VIDEO_DISPLAY_AND_LOUDSPEAKER,
+                "AUDIO_VIDEO_VIDEO_DISPLAY_AND_LOUDSPEAKER");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VIDEO_CONFERENCING,
+                "AUDIO_VIDEO_VIDEO_CONFERENCING");
+        deviceClasses.put(BluetoothClass.Device.AUDIO_VIDEO_VIDEO_GAMING_TOY,
+                "AUDIO_VIDEO_VIDEO_GAMING_TOY");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_UNCATEGORIZED, "WEARABLE_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_WRIST_WATCH, "WEARABLE_WRIST_WATCH");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_PAGER, "WEARABLE_PAGER");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_JACKET, "WEARABLE_JACKET");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_HELMET, "WEARABLE_HELMET");
+        deviceClasses.put(BluetoothClass.Device.WEARABLE_GLASSES, "WEARABLE_GLASSES");
+        deviceClasses.put(BluetoothClass.Device.TOY_UNCATEGORIZED, "TOY_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.TOY_ROBOT, "TOY_ROBOT");
+        deviceClasses.put(BluetoothClass.Device.TOY_VEHICLE, "TOY_VEHICLE");
+        deviceClasses.put(BluetoothClass.Device.TOY_DOLL_ACTION_FIGURE, "TOY_DOLL_ACTION_FIGURE");
+        deviceClasses.put(BluetoothClass.Device.TOY_CONTROLLER, "TOY_CONTROLLER");
+        deviceClasses.put(BluetoothClass.Device.TOY_GAME, "TOY_GAME");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_UNCATEGORIZED, "HEALTH_UNCATEGORIZED");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_BLOOD_PRESSURE, "HEALTH_BLOOD_PRESSURE");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_THERMOMETER, "HEALTH_THERMOMETER");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_WEIGHING, "HEALTH_WEIGHING");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_GLUCOSE, "HEALTH_GLUCOSE");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_PULSE_OXIMETER, "HEALTH_PULSE_OXIMETER");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_PULSE_RATE, "HEALTH_PULSE_RATE");
+        deviceClasses.put(BluetoothClass.Device.HEALTH_DATA_DISPLAY, "HEALTH_DATA_DISPLAY");
+        return deviceClasses;
     }
 
 }

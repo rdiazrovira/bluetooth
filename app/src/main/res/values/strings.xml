@@ -10,9 +10,8 @@
     <string name="scan">SCAN</string>
     <string name="adapter_dialog_title">Bluetooth Disabled</string>
     <string name="device_dialog_title">Device Not Paired</string>
-    <string name="information_bluetooth">
-        Sample text sample text sample text sample text sample text sample text sample text sample.
-        \n\nSample text sample text sample text sample text sample text sample text sample text
-        sample text sample text sample text.
-    </string>
+    <string name="information_bluetooth">Sample text / Instructions
+        \n\nSample text / Instructions\n\nSample text / Instructions</string>
+    <string name="notification_bluetooth">Changes on connection state of
+        followed bluetooth device.</string>
 </resources>

@@ -17,7 +17,6 @@ import java.util.ArrayList;
 
 import static com.example.bluetoothapp.utilities.BluetoothFacade.AVAILABLE_BLUETOOTH_DEVICE;
 import static com.example.bluetoothapp.utilities.BluetoothFacade.PAIRED_BLUETOOTH_DEVICE;
-import static com.example.bluetoothapp.utilities.BluetoothFacade.getDeviceClass;
 
 public class DeviceAdapter extends RecyclerView.Adapter {
 
@@ -91,8 +90,7 @@ public class DeviceAdapter extends RecyclerView.Adapter {
     }
 
     private boolean hasPriority(BluetoothDevice device) {
-        return getDeviceClass(device).equals("CAR_AUDIO")
-                || getDeviceClass(device).equals("COMPUTER_LAPTOP");
+        return BluetoothFacade.getDeviceClassDescription(device).equals("AUDIO_VIDEO_HANDSFREE");
     }
 
     private boolean isScanning() {
@@ -185,8 +183,6 @@ public class DeviceAdapter extends RecyclerView.Adapter {
         switch (deviceClass) {
             case BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE:
                 return R.drawable.handsfree;
-            case BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO:
-                return R.drawable.car;
             case BluetoothClass.Device.COMPUTER_LAPTOP:
                 return R.drawable.computer;
             case BluetoothClass.Device.PHONE_SMART:
